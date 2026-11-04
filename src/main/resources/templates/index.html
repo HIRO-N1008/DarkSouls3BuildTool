@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Souls 3 Build Tool</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #1c1c1c;
+            color: #eeeeee;
+        }
+
+        h1 {
+            color: #d8b56d;
+        }
+
+        .panel {
+            padding: 20px;
+            margin-top: 20px;
+            background: #303030;
+            border-radius: 8px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        input {
+            box-sizing: border-box;
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #666;
+            border-radius: 5px;
+            background: #202020;
+            color: white;
+            font-size: 16px;
+        }
+
+        select {
+            box-sizing: border-box;
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #666;
+            border-radius: 5px;
+            background: #202020;
+            color: white;
+            font-size: 16px;
+        }
+
+        button {
+            margin-top: 18px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            background: #d8b56d;
+            color: #1c1c1c;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #result {
+            white-space: pre-line;
+            line-height: 1.8;
+        }
+
+        /* 防具の性能表 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        th,
+        td {
+            padding: 10px 8px;
+            border: 1px solid #555555;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        th {
+            background: #252525;
+            color: #d8b56d;
+        }
+
+        td:first-child {
+            text-align: left;
+            font-weight: bold;
+        }
+
+        /* 合計列を目立たせる */
+        th:last-child,
+        td:last-child {
+            background: #3b3427;
+            color: #f0d28a;
+            font-weight: bold;
+        }
+
+        @media (max-width: 500px) {
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>Dark Souls 3 Build Tool</h1>
+<p>ダークソウル3 ビルド作成ツール</p>
+
+<div class="panel">
+    <h2>ステータス設定</h2>
+
+    <form id="statusForm">
+        <div class="status-grid">
+            <div>
+                <label for="vigor">生命力</label>
+                <input id="vigor" type="number" min="9" max="99" value="40" required>
+            </div>
+            <div>
+                <label for="attunement">集中力</label>
+                <input id="attunement" type="number" min="6" max="99" value="10" required>
+            </div>
+            <div>
+                <label for="endurance">持久力</label>
+                <input id="endurance" type="number" min="9" max="99" value="31" required>
+            </div>
+            <div>
+                <label for="vitality">体力</label>
+                <input id="vitality" type="number" min="7" max="99" value="20" required>
+            </div>
+            <div>
+                <label for="strength">筋力</label>
+                <input id="strength" type="number" min="7" max="99" value="18" required>
+            </div>
+            <div>
+                <label for="dexterity">技量</label>
+                <input id="dexterity" type="number" min="8" max="99" value="70" required>
+            </div>
+            <div>
+                <label for="intelligence">理力</label>
+                <input id="intelligence" type="number" min="7" max="99" value="9" required>
+            </div>
+            <div>
+                <label for="faith">信仰</label>
+                <input id="faith" type="number" min="7" max="99" value="9" required>
+            </div>
+            <div>
+                <label for="luck">運</label>
+                <input id="luck" type="number" min="7" max="99" value="7" required>
+            </div>
+        </div>
+
+        <button type="submit">入力内容を確認</button>
+    </form>
+
+    <section id="originResultsSection">
+        <h2>素性の判定結果</h2>
+        <p>入力した能力値から、作成可能な素性を確認できます。</p>
+        <div id="originResults">
+            まだ判定していません。
+        </div>
+    </section>
+
+</div>
+
+<div class="panel">
+    <h2>入力結果</h2>
+    <p id="result">ステータスを入力して「入力内容を確認」を押してください。</p>
+</div>
+
+<section class="panel">
+    <div id="equipmentSection">
+        <h2>装備</h2>
+        <h3>武器</h3>
+
+        <label for="rightWeapon">右手武器</label>
+        <select id="rightWeapon">
+            <option value="">未選択</option>
+        </select>
+
+        <label for="leftWeapon">左手武器</label>
+        <select id="leftWeapon">
+            <option value="">未選択</option>
+        </select>
+
+        <h3>防具</h3>
+
+        <label for="headArmor">頭</label>
+        <select id="headArmor">
+            <option value="">未選択</option>
+        </select>
+        <label for="headArmorWeight">頭防具の重量</label>
+        <input id="headArmorWeight" type="number" min="0" step="0.1" value="0" readonly>
+
+        <label for="chestArmor">胴</label>
+        <select id="chestArmor">
+            <option value="">未選択</option>
+        </select>
+        <label for="chestArmorWeight">胴防具の重量</label>
+        <input id="chestArmorWeight" type="number" min="0" step="0.1" value="0" readonly>
+
+        <label for="handsArmor">腕</label>
+        <select id="handsArmor">
+            <option value="">未選択</option>
+        </select>
+        <label for="handsArmorWeight">腕防具の重量</label>
+        <input id="handsArmorWeight" type="number" min="0" step="0.1" value="0" readonly>
+
+        <label for="legsArmor">脚</label>
+        <select id="legsArmor">
+            <option value="">未選択</option>
+        </select>
+        <label for="legsArmorWeight">脚防具の重量</label>
+        <input id="legsArmorWeight" type="number" min="0" step="0.1" value="0" readonly>
+
+        <h3>選択中の防具の性能</h3>
+
+        <table>
+            <thead>
+            <tr>
+                <th>性能</th>
+                <th>頭</th>
+                <th>胴</th>
+                <th>腕</th>
+                <th>脚</th>
+                <th>合計</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>物理</td>
+                <td id="headPhysical">0</td>
+                <td id="chestPhysical">0</td>
+                <td id="handsPhysical">0</td>
+                <td id="legsPhysical">0</td>
+                <td id="totalPhysical">0</td>
+            </tr>
+            <tr>
+                <td>打撃</td>
+                <td id="headStrike">0</td>
+                <td id="chestStrike">0</td>
+                <td id="handsStrike">0</td>
+                <td id="legsStrike">0</td>
+                <td id="totalStrike">0</td>
+            </tr>
+            <tr>
+                <td>斬撃</td>
+                <td id="headSlash">0</td>
+                <td id="chestSlash">0</td>
+                <td id="handsSlash">0</td>
+                <td id="legsSlash">0</td>
+                <td id="totalSlash">0</td>
+            </tr>
+            <tr>
+                <td>刺突</td>
+                <td id="headThrust">0</td>
+                <td id="chestThrust">0</td>
+                <td id="handsThrust">0</td>
+                <td id="legsThrust">0</td>
+                <td id="totalThrust">0</td>
+            </tr>
+            <tr>
+                <td>魔力</td>
+                <td id="headMagic">0</td>
+                <td id="chestMagic">0</td>
+                <td id="handsMagic">0</td>
+                <td id="legsMagic">0</td>
+                <td id="totalMagic">0</td>
+            </tr>
+            <tr>
+                <td>炎</td>
+                <td id="headFire">0</td>
+                <td id="chestFire">0</td>
+                <td id="handsFire">0</td>
+                <td id="legsFire">0</td>
+                <td id="totalFire">0</td>
+            </tr>
+            <tr>
+                <td>雷</td>
+                <td id="headLightning">0</td>
+                <td id="chestLightning">0</td>
+                <td id="handsLightning">0</td>
+                <td id="legsLightning">0</td>
+                <td id="totalLightning">0</td>
+            </tr>
+            <tr>
+                <td>闇</td>
+                <td id="headDark">0</td>
+                <td id="chestDark">0</td>
+                <td id="handsDark">0</td>
+                <td id="legsDark">0</td>
+                <td id="totalDark">0</td>
+            </tr>
+            <tr>
+                <td>出血耐性</td>
+                <td id="headBlood">0</td>
+                <td id="chestBlood">0</td>
+                <td id="handsBlood">0</td>
+                <td id="legsBlood">0</td>
+                <td id="totalBlood">0</td>
+            </tr>
+            <tr>
+                <td>毒耐性</td>
+                <td id="headPoison">0</td>
+                <td id="chestPoison">0</td>
+                <td id="handsPoison">0</td>
+                <td id="legsPoison">0</td>
+                <td id="totalPoison">0</td>
+            </tr>
+            <tr>
+                <td>冷気耐性</td>
+                <td id="headFrost">0</td>
+                <td id="chestFrost">0</td>
+                <td id="handsFrost">0</td>
+                <td id="legsFrost">0</td>
+                <td id="totalFrost">0</td>
+            </tr>
+            <tr>
+                <td>呪死耐性</td>
+                <td id="headCurse">0</td>
+                <td id="chestCurse">0</td>
+                <td id="handsCurse">0</td>
+                <td id="legsCurse">0</td>
+                <td id="totalCurse">0</td>
+            </tr>
+            <tr>
+                <td>強靭度</td>
+                <td id="headPoise">0</td>
+                <td id="chestPoise">0</td>
+                <td id="handsPoise">0</td>
+                <td id="legsPoise">0</td>
+                <td id="totalPoise">0</td>
+            </tr>
+            </tbody>
+        </table>
+
+
+        <div class="panel">
+            <h3>指輪</h3>
+
+            <div class="status-grid">
+                <div>
+                    <label for="ring1">指輪1</label>
+                    <select id="ring1">
+                        <option value="">未選択</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="ring2">指輪2</label>
+                    <select id="ring2">
+                        <option value="">未選択</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="ring3">指輪3</label>
+                    <select id="ring3">
+                        <option value="">未選択</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="ring4">指輪4</label>
+                    <select id="ring4">
+                        <option value="">未選択</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <h3>武器の合計重量</h3>
+        <p id="totalWeaponWeight">0.0</p>
+
+        <h3>防具の合計重量</h3>
+        <p id="totalArmorWeight">0.0</p>
+
+        <h3>武器・防具・指輪の合計重量</h3>
+        <p id="totalEquipmentWeight">0.0</p>
+
+        <h3>装備重量比</h3>
+        <p id="equipLoadRatio">0.0%</p>
+
+        <h3>最大装備重量</h3>
+        <p id="maxEquipLoad">0.0</p>
+
+        <h3>最大HP</h3>
+        <p id="maxHp">0</p>
+
+        <h3>最大スタミナ</h3>
+        <p id="maxStamina">0</p>
+
+    </div>
+
+    <h2>武器の装備条件チェック</h2>
+    <p>入力したステータスで装備できる武器を確認できます。</p>
+
+    <div class="status-grid">
+        <div>
+            <label for="weaponSearch">武器名で検索</label>
+            <input
+                    id="weaponSearch"
+                    type="text"
+                    placeholder="例：ロングソード"
+            >
+        </div>
+
+        <div>
+            <label for="weaponCategory">武器種別で絞り込み</label>
+            <select id="weaponCategory">
+                <option value="すべて">すべて</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="twoHandedContainer"
+         style="display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 16px 0;
+            padding: 12px 14px;
+            background: #252525;
+            border-radius: 8px;">
+
+        <input type="checkbox"
+               id="twoHanded"
+               style="width: auto; margin: 0;">
+
+        <label for="twoHanded"
+               style="margin: 0; cursor: pointer;">
+            両手持ちとして武器を判定する（筋力1.5倍）
+        </label>
+    </div>
+
+    <div id="weaponResults">
+        ステータスを入力して「入力内容を確認」を押してください。
+    </div>
+</section>
+
+<script>
+
+    const form = document.getElementById("statusForm");
+    const result = document.getElementById("result");
+    const weaponResults = document.getElementById("weaponResults");
+    const weaponSearch = document.getElementById("weaponSearch");
+    const weaponCategory = document.getElementById("weaponCategory");
+
+    // Javaから取得した武器データを保存する
+    let currentWeapons = [];
+
+    // 右手・左手の武器選択欄を更新する
+    function updateEquipmentOptions(weapons) {
+        const rightWeapon = document.getElementById("rightWeapon");
+        const leftWeapon = document.getElementById("leftWeapon");
+
+        const previousRight = rightWeapon.value;
+        const previousLeft = leftWeapon.value;
+
+        for (const select of [rightWeapon, leftWeapon]) {
+            select.replaceChildren();
+
+            const emptyOption = document.createElement("option");
+            emptyOption.value = "";
+            emptyOption.textContent = "未選択";
+            select.appendChild(emptyOption);
+
+            for (const weapon of weapons) {
+                const option = document.createElement("option");
+                option.value = weapon.name;
+                option.textContent = weapon.name;
+                select.appendChild(option);
+            }
+        }
+
+        // 以前の選択が残っていれば維持する
+        if (weapons.some(weapon => weapon.name === previousRight)) {
+            rightWeapon.value = previousRight;
+        }
+
+        if (weapons.some(weapon => weapon.name === previousLeft)) {
+            leftWeapon.value = previousLeft;
+        }
+
+        updateTotalWeaponWeight();
+    }
+
+    document.getElementById("rightWeapon").addEventListener(
+        "change",
+        updateTotalWeaponWeight
+    );
+
+    document.getElementById("leftWeapon").addEventListener(
+        "change",
+        updateTotalWeaponWeight
+    );
+
+    [
+        "headArmorWeight",
+        "chestArmorWeight",
+        "handsArmorWeight",
+        "legsArmorWeight"
+    ].forEach(function(id) {
+        document.getElementById(id).addEventListener(
+            "input",
+            updateTotalArmorWeight
+        );
+    });
+
+    // 体力が変更されたら最大装備重量を更新
+    document.getElementById("vitality").addEventListener(
+        "input",
+        updateMaxEquipLoad
+    );
+
+    // 選択した武器の合計重量を計算する
+    function updateTotalWeaponWeight() {
+        const rightName = document.getElementById("rightWeapon").value;
+        const leftName = document.getElementById("leftWeapon").value;
+
+        const right = currentWeapons.find(weapon => weapon.name === rightName);
+        const left = currentWeapons.find(weapon => weapon.name === leftName);
+
+        const total =
+            (right ? Number(right.weight) : 0) +
+            (left ? Number(left.weight) : 0);
+
+        document.getElementById("totalWeaponWeight").textContent =
+            total.toFixed(1);
+        updateTotalEquipmentWeight();
+    }
+
+    // 選択した防具の合計重量を計算する
+    function updateTotalArmorWeight() {
+        const head = Number(
+            document.getElementById("headArmorWeight").value
+        );
+
+        const chest = Number(
+            document.getElementById("chestArmorWeight").value
+        );
+
+        const hands = Number(
+            document.getElementById("handsArmorWeight").value
+        );
+
+        const legs = Number(
+            document.getElementById("legsArmorWeight").value
+        );
+
+        const totalArmor = head + chest + hands + legs;
+
+        document.getElementById("totalArmorWeight").textContent =
+            totalArmor.toFixed(1);
+
+        updateTotalEquipmentWeight();
+    }
+
+    function updateTotalEquipmentWeight() {
+        const weaponWeight = Number(
+            document.getElementById("totalWeaponWeight").textContent
+        );
+
+        const armorWeight = Number(
+            document.getElementById("totalArmorWeight").textContent
+        );
+
+        // 指輪4枠の重量を合計する
+        const ringIds = [
+            "ring1",
+            "ring2",
+            "ring3",
+            "ring4"
+        ];
+
+        const ringWeight = ringIds.reduce((total, id) => {
+            const select = document.getElementById(id);
+            const selectedRing = currentRings.find(
+                ring => ring.name === select.value
+            );
+
+            return total + (selectedRing ? selectedRing.weight : 0);
+        }, 0);
+
+        // 武器・防具・指輪の重量を合計する
+        const total = weaponWeight + armorWeight + ringWeight;
+
+        document.getElementById("totalEquipmentWeight").textContent =
+            total.toFixed(1);
+
+        updateEquipLoadRatio();
+    }
+
+    function updateEquipLoadRatio() {
+        const totalWeight = Number(
+            document.getElementById("totalEquipmentWeight").textContent
+        );
+
+        const maxLoad = Number(
+            document.getElementById("maxEquipLoad").textContent
+        );
+
+        const ratio = maxLoad > 0
+            ? totalWeight / maxLoad * 100
+            : 0;
+
+        document.getElementById("equipLoadRatio").textContent =
+            ratio.toFixed(1) + "%";
+    }
+
+    // 体力から最大装備重量を計算する
+    function updateMaxEquipLoad() {
+        const vitality = Number(
+            document.getElementById("vitality").value
+        );
+
+        // 指輪4枠に装備している指輪を取得する
+        const ringIds = [
+            "ring1",
+            "ring2",
+            "ring3",
+            "ring4"
+        ];
+
+        let equipLoadBonus = 0;
+
+        ringIds.forEach(id => {
+            const selectedName = document.getElementById(id).value;
+
+            const ring = currentRings.find(
+                ring => ring.name === selectedName
+            );
+
+            if (!ring) {
+                return;
+            }
+
+            ring.effects.forEach(effect => {
+                if (effect.effectType === "equipLoad") {
+                    equipLoadBonus += effect.effectValue;
+                }
+            });
+        });
+
+        // 基礎計算式
+        const baseLoad = 40 + vitality;
+
+        const maxLoad = baseLoad * (1 + equipLoadBonus / 100);
+
+        document.getElementById("maxEquipLoad").textContent =
+            maxLoad.toFixed(1);
+
+        updateEquipLoadRatio();
+    }
+
+    // 現在の入力値を取得する
+    function readStatus() {
+        return {
+            vigor: Number(document.getElementById("vigor").value),
+            attunement: Number(document.getElementById("attunement").value),
+            endurance: Number(document.getElementById("endurance").value),
+            vitality: Number(document.getElementById("vitality").value),
+            strength: Number(document.getElementById("strength").value),
+            dexterity: Number(document.getElementById("dexterity").value),
+            intelligence: Number(document.getElementById("intelligence").value),
+            faith: Number(document.getElementById("faith").value),
+            luck: Number(document.getElementById("luck").value)
+        };
+    }
+
+    // 現在のステータスと両手持ち設定で武器判定を更新する
+    async function refreshWeaponResults() {
+        const status = readStatus();
+
+        const weaponStatus = {
+            ...status,
+            twoHanded: document.getElementById("twoHanded").checked
+        };
+
+        const response = await fetch("/api/weapons/check", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(weaponStatus)
+        });
+
+        if (!response.ok) {
+            throw new Error("武器の判定に失敗しました");
+        }
+
+        currentWeapons = await response.json();
+
+        updateCategories(currentWeapons);
+        renderWeapons();
+        updateEquipmentOptions(currentWeapons);
+    }
+
+    // 武器種別の選択肢をデータから自動生成する
+    function updateCategories(weapons) {
+        const previousCategory = weaponCategory.value;
+
+        const categories = [
+            ...new Set(weapons.map(weapon => weapon.category))
+        ]
+            .filter(category => category)
+            .sort();
+
+        weaponCategory.replaceChildren();
+
+        const allOption = document.createElement("option");
+        allOption.value = "すべて";
+        allOption.textContent = "すべて";
+        weaponCategory.appendChild(allOption);
+
+        for (const category of categories) {
+            const option = document.createElement("option");
+            option.value = category;
+            option.textContent = category;
+            weaponCategory.appendChild(option);
+        }
+
+        // 選択中の武器種がまだ存在する場合は維持する
+        if (categories.includes(previousCategory)) {
+            weaponCategory.value = previousCategory;
+        } else {
+            weaponCategory.value = "すべて";
+        }
+    }
+
+    // 検索条件に合わせて武器を表示する
+    function renderWeapons() {
+        weaponResults.replaceChildren();
+
+        const keyword = weaponSearch.value.trim().toLowerCase();
+        const selectedCategory = weaponCategory.value;
+
+        // 装備可能かどうかに関係なく、名前と武器種別で絞り込む
+        const filteredWeapons = currentWeapons.filter(weapon => {
+            const matchesName =
+                weapon.name.toLowerCase().includes(keyword);
+
+            const matchesCategory =
+                selectedCategory === "すべて" ||
+                weapon.category === selectedCategory;
+
+            return matchesName && matchesCategory;
+        });
+
+        if (filteredWeapons.length === 0) {
+            weaponResults.textContent =
+                "条件に一致する武器はありません。";
+            return;
+        }
+
+        for (const weapon of filteredWeapons) {
+            const card = document.createElement("div");
+            const name = document.createElement("h3");
+            const category = document.createElement("p");
+            const weight = document.createElement("p");
+            const requirements = document.createElement("p");
+            const scaling = document.createElement("p");
+            const verdict = document.createElement("p");
+            const missing = document.createElement("p");
+
+            name.textContent = weapon.name;
+
+            category.textContent =
+                `武器種：${weapon.category}`;
+            weight.textContent =
+                `重量：${Number(weapon.weight).toFixed(1)}`;
+
+            requirements.textContent =
+                `必要能力値：筋力 ${weapon.strength} / ` +
+                `技量 ${weapon.dexterity} / ` +
+                `理力 ${weapon.intelligence} / ` +
+                `信仰 ${weapon.faith}`;
+
+            scaling.textContent =
+                `能力補正：筋力 ${weapon.strengthScaling} / ` +
+                `技量 ${weapon.dexterityScaling} / ` +
+                `理力 ${weapon.intelligenceScaling} / ` +
+                `信仰 ${weapon.faithScaling}`;
+
+            if (weapon.canEquip) {
+                verdict.textContent = "装備可能";
+                verdict.style.color = "#7bd88f";
+                missing.textContent = "";
+            } else {
+                verdict.textContent = "装備不可";
+                verdict.style.color = "#ff7777";
+
+                missing.textContent = weapon.missing
+                    .map(requirement => requirement + "です")
+                    .join(" / ");
+
+                missing.style.color = "#ff9999";
+            }
+
+            card.style.padding = "12px";
+            card.style.marginTop = "12px";
+            card.style.background = "#252525";
+            card.style.borderRadius = "6px";
+
+            card.append(
+                name,
+                category,
+                weight,
+                requirements,
+                scaling,
+                verdict
+            );
+
+            if (!weapon.canEquip) {
+                card.appendChild(missing);
+            }
+
+            weaponResults.appendChild(card);
+        }
+    }
+
+    // 検索欄や武器種別が変更されたら再表示する
+    weaponSearch.addEventListener("input", renderWeapons);
+    weaponCategory.addEventListener("change", renderWeapons);
+    // 両手持ちの設定が変わったら武器判定を自動更新する
+    document.getElementById("twoHanded").addEventListener(
+        "change",
+        async function () {
+            try {
+                await refreshWeaponResults();
+            } catch (error) {
+                weaponResults.textContent =
+                    "武器の判定に失敗しました。ステータスやサーバーを確認してください。";
+                console.error(error);
+            }
+        }
+    );
+
+    // 防具一覧を保存する
+    let currentArmors = [];
+
+    // 防具一覧をサーバーから取得する
+    async function loadArmors() {
+        const response = await fetch("/api/armors");
+
+        if (!response.ok) {
+            throw new Error("防具一覧の取得に失敗しました。");
+        }
+
+        currentArmors = await response.json();
+
+        updateArmorOptions();
+        setupArmorWeightListeners();
+        setupArmorStatsListeners();
+    }
+
+    // 防具の選択肢を設定する
+    function updateArmorOptions() {
+        const armorSelects = [
+            { id: "headArmor", category: "頭" },
+            { id: "chestArmor", category: "胴" },
+            { id: "handsArmor", category: "腕" },
+            { id: "legsArmor", category: "脚" }
+        ];
+
+        armorSelects.forEach(item => {
+            const select = document.getElementById(item.id);
+
+            select.innerHTML = '<option value="">未選択</option>';
+
+            currentArmors
+                .filter(armor => armor.category === item.category)
+                .forEach(armor => {
+                    const option = document.createElement("option");
+
+                    option.value = armor.name;
+                    option.textContent = armor.name;
+
+                    select.appendChild(option);
+                });
+        });
+    }
+    loadArmors().catch(error => {
+        console.error("防具の読み込みエラー:", error);
+    });
+
+    function updateSelectedArmorWeight(selectId, weightId) {
+        const select = document.getElementById(selectId);
+        const weightInput = document.getElementById(weightId);
+
+        select.addEventListener("change", () => {
+            const selectedArmor = currentArmors.find(
+                armor => armor.name === select.value
+            );
+
+            weightInput.value = selectedArmor
+                ? selectedArmor.weight
+                : 0;
+
+            updateTotalArmorWeight();
+        });
+    }
+
+
+    function updateArmorStats(selectId, prefix) {
+        const selectedName = document.getElementById(selectId).value;
+
+        const armor = currentArmors.find(
+            item => item.name === selectedName
+        );
+
+        const stats = [
+            "physical",
+            "strike",
+            "slash",
+            "thrust",
+            "magic",
+            "fire",
+            "lightning",
+            "dark",
+            "blood",
+            "poison",
+            "frost",
+            "curse",
+            "poise"
+        ];
+
+        stats.forEach(stat => {
+            const element = document.getElementById(prefix + stat.charAt(0).toUpperCase() + stat.slice(1));
+
+            if (element) {
+                element.textContent = armor
+                    ? armor[stat]
+                    : 0;
+            }
+        });
+        updateTotalArmorStats();
+    }
+
+
+    function updateTotalArmorStats() {
+        const stats = [
+            "Physical",
+            "Strike",
+            "Slash",
+            "Thrust",
+            "Magic",
+            "Fire",
+            "Lightning",
+            "Dark",
+            "Blood",
+            "Poison",
+            "Frost",
+            "Curse",
+            "Poise"
+        ];
+
+        stats.forEach(stat => {
+            const prefixes = ["head", "chest", "hands", "legs"];
+
+            const total = prefixes.reduce((sum, prefix) => {
+                const element = document.getElementById(prefix + stat);
+                return sum + (element ? Number(element.textContent) || 0 : 0);
+            }, 0);
+
+            const totalElement = document.getElementById("total" + stat);
+
+            if (totalElement) {
+                totalElement.textContent = total.toFixed(1);
+            }
+        });
+    }
+
+    function setupArmorWeightListeners() {
+        updateSelectedArmorWeight("headArmor", "headArmorWeight");
+        updateSelectedArmorWeight("chestArmor", "chestArmorWeight");
+        updateSelectedArmorWeight("handsArmor", "handsArmorWeight");
+        updateSelectedArmorWeight("legsArmor", "legsArmorWeight");
+    }
+
+    function setupArmorStatsListeners() {
+        document.getElementById("headArmor").addEventListener(
+            "change",
+            () => updateArmorStats("headArmor", "head")
+        );
+
+        document.getElementById("chestArmor").addEventListener(
+            "change",
+            () => updateArmorStats("chestArmor", "chest")
+        );
+
+        document.getElementById("handsArmor").addEventListener(
+            "change",
+            () => updateArmorStats("handsArmor", "hands")
+        );
+
+        document.getElementById("legsArmor").addEventListener(
+            "change",
+            () => updateArmorStats("legsArmor", "legs")
+        );
+    }
+
+    let currentRings = [];
+
+    async function loadRings() {
+        const response = await fetch("/api/rings");
+
+        if (!response.ok) {
+            throw new Error("指輪一覧の取得に失敗しました。");
+        }
+
+        currentRings = await response.json();
+
+        updateRingOptions();
+        updateTotalEquipmentWeight();
+        updateMaxEquipLoad();
+        updateMaxHp();
+        updateMaxStamina();
+    }
+
+    function updateRingOptions() {
+        const ringSelects = [
+            "ring1",
+            "ring2",
+            "ring3",
+            "ring4"
+        ];
+
+        ringSelects.forEach(id => {
+            const select = document.getElementById(id);
+
+            select.innerHTML = '<option value="">未選択</option>';
+
+            currentRings.forEach(ring => {
+                const option = document.createElement("option");
+
+                option.value = ring.name;
+                option.textContent = ring.name;
+
+                select.appendChild(option);
+            });
+        });
+    }
+
+    ["ring1", "ring2", "ring3", "ring4"].forEach(id => {
+        document.getElementById(id).addEventListener("change", () => {
+            updateTotalEquipmentWeight();
+            updateMaxEquipLoad();
+            updateMaxHp();
+            updateMaxStamina();
+        });
+    });
+
+    loadRings().catch(error => {
+        console.error("指輪の読み込みエラー:", error);
+    });
+
+    //HPの最大
+    function calculateMaxHp(vigor) {
+        const hpTable = [
+            381, 403, 427, 454, 483, 515, 550, 594, 638, 681, 723,
+            764, 804, 842, 879, 914, 947, 977, 1000, 1019, 1038,
+            1056, 1074, 1092, 1109, 1125, 1141, 1157, 1172, 1186, 1200,
+            1213, 1226, 1238, 1249, 1260, 1269, 1278, 1285, 1292, 1297,
+            1300, 1302, 1304, 1307, 1309, 1312, 1314, 1316, 1319, 1321,
+            1323, 1326, 1328, 1330, 1333, 1335, 1337, 1340, 1342, 1344,
+            1346, 1348, 1351, 1353, 1355, 1357, 1359, 1361, 1363, 1365,
+            1367, 1369, 1371, 1373, 1375, 1377, 1379, 1381, 1383, 1385,
+            1386, 1388, 1390, 1391, 1393, 1395, 1396, 1397, 1399, 1400
+        ];
+
+        if (vigor < 9 || vigor > 99) {
+            return null;
+        }
+
+        return hpTable[vigor - 9];
+    }
+
+    function updateMaxHp() {
+        const vigor = Number(
+            document.getElementById("vigor").value
+        );
+
+        const baseHp = calculateMaxHp(vigor);
+
+        if (baseHp === null) {
+            document.getElementById("maxHp").textContent = "未対応";
+            return;
+        }
+
+        const ringIds = ["ring1", "ring2", "ring3", "ring4"];
+        let hpBonus = 0;
+
+        ringIds.forEach(id => {
+            const selectedName = document.getElementById(id).value;
+            const ring = currentRings.find(
+                ring => ring.name === selectedName
+            );
+
+            if (!ring) return;
+
+            ring.effects.forEach(effect => {
+                if (effect.effectType === "hp") {
+                    hpBonus += effect.effectValue;
+                }
+            });
+        });
+
+        const maxHp = Math.floor(baseHp * (1 + hpBonus / 100));
+
+        document.getElementById("maxHp").textContent = maxHp;
+    }
+
+    document.getElementById("vigor").addEventListener(
+        "input",
+        updateMaxHp
+    );
+
+    //スタミナの最大
+    function calculateMaxStamina(endurance) {
+        const staminaTable = [
+            92, 94, 95, 97, 98, 100, 102, 104, 106, 108, 110,
+            112, 114, 116, 118, 120, 122, 125, 127, 129, 132,
+            134, 136, 139, 141, 144, 146, 149, 152, 154, 157,
+            160, 160, 160, 160, 160, 160, 161, 161, 161, 161,
+            161, 161, 162, 162, 162, 162, 162, 162, 163, 163,
+            163, 163, 163, 163, 164, 164, 164, 164, 164, 164,
+            165, 165, 165, 165, 165, 165, 166, 166, 166, 166,
+            166, 166, 167, 167, 167, 167, 167, 167, 168, 168,
+            168, 168, 168, 168, 169, 169, 169, 169, 169, 170
+        ];
+
+        if (endurance < 9 || endurance > 99) {
+            return null;
+        }
+
+        return staminaTable[endurance - 9];
+    }
+
+    function updateMaxStamina() {
+        const endurance = Number(
+            document.getElementById("endurance").value
+        );
+
+        const baseStamina = calculateMaxStamina(endurance);
+
+        if (baseStamina === null) {
+            document.getElementById("maxStamina").textContent = "未対応";
+            return;
+        }
+
+        const ringIds = ["ring1", "ring2", "ring3", "ring4"];
+        let staminaBonus = 0;
+
+        ringIds.forEach(id => {
+            const selectedName = document.getElementById(id).value;
+            const ring = currentRings.find(
+                ring => ring.name === selectedName
+            );
+
+            if (!ring) return;
+
+            ring.effects.forEach(effect => {
+                if (effect.effectType === "stamina") {
+                    staminaBonus += effect.effectValue;
+                }
+            });
+        });
+
+        const maxStamina = Math.floor(
+            baseStamina * (1 + staminaBonus / 100)
+        );
+
+        document.getElementById("maxStamina").textContent = maxStamina;
+    }
+
+    document.getElementById("endurance").addEventListener(
+        "input",
+        updateMaxStamina
+    );
+
+    // ステータス送信処理
+    form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        const status = {
+            vigor: Number(document.getElementById("vigor").value),
+            attunement: Number(document.getElementById("attunement").value),
+            endurance: Number(document.getElementById("endurance").value),
+            vitality: Number(document.getElementById("vitality").value),
+            strength: Number(document.getElementById("strength").value),
+            dexterity: Number(document.getElementById("dexterity").value),
+            intelligence: Number(document.getElementById("intelligence").value),
+            faith: Number(document.getElementById("faith").value),
+            luck: Number(document.getElementById("luck").value)
+        };
+        checkOrigins(status);
+
+        try {
+            const statusResponse = await fetch("/api/status", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(status)
+            });
+
+            if (!statusResponse.ok) {
+                throw new Error("ステータスの送信に失敗しました");
+            }
+
+            const statusData = await statusResponse.json();
+
+            result.textContent =
+                statusData.message + "\n\n" +
+                Object.entries(statusData.status)
+                    .map(([key, value]) => `${key}: ${value}`)
+                    .join("\n");
+
+            await refreshWeaponResults();
+
+        } catch (error) {
+            result.textContent =
+                "処理に失敗しました。サーバーの状態を確認してください。";
+
+            weaponResults.textContent =
+                "武器の判定結果を取得できませんでした。";
+
+            console.error(error);
+        }
+    });
+
+    async function checkOrigins(status) {
+        const originResults = document.getElementById("originResults");
+
+        originResults.textContent = "素性を判定中...";
+
+        try {
+            const response = await fetch("/api/origins/check", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(status)
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.text();
+
+                console.error(
+                    "素性判定APIエラー:",
+                    response.status,
+                    errorBody
+                );
+
+                throw new Error(
+                    "HTTP " + response.status + "：" + errorBody
+                );
+            }
+
+            const origins = await response.json();
+
+            originResults.replaceChildren();
+
+            const compatibleOrigins = origins.filter(
+                origin => origin.compatible
+            );
+
+            const heading = document.createElement("h3");
+            heading.textContent = "作成可能な素性";
+            originResults.appendChild(heading);
+
+            if (compatibleOrigins.length === 0) {
+                const message = document.createElement("p");
+                message.textContent =
+                    "この能力値構成に対応する素性はありません。";
+                originResults.appendChild(message);
+            }
+
+            compatibleOrigins.forEach(origin => {
+                const card = document.createElement("div");
+
+                const name = document.createElement("h4");
+                name.textContent = origin.name;
+
+                const level = document.createElement("p");
+                level.textContent =
+                    "能力値から計算した必要レベル：" +
+                    origin.requiredLevel;
+
+                card.append(name, level);
+                originResults.appendChild(card);
+            });
+
+            const otherHeading = document.createElement("h3");
+            otherHeading.textContent = "作成できない素性";
+            originResults.appendChild(otherHeading);
+
+            origins
+                .filter(origin => !origin.compatible)
+                .forEach(origin => {
+                    const item = document.createElement("p");
+                    item.textContent =
+                        origin.name + "：目標能力値より初期能力値が高い項目「" +
+                        origin.exceeds.join("、") + "」";
+                    originResults.appendChild(item);
+                });
+
+        } catch (error) {
+            console.error("素性判定エラー:", error);
+            originResults.textContent =
+                "素性の判定に失敗しました: " + error.message;
+        }
+    }
+    updateMaxEquipLoad();
+    updateTotalArmorWeight();
+    updateMaxHp();
+    updateMaxStamina();
+
+</script>
+</body>
+</html>
