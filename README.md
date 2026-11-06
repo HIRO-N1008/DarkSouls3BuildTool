@@ -8,7 +8,6 @@
 ## 使用技術
 - Java 25
 - Spring Boot
-- Gradle
 - HTML
 - CSS
 - JavaScript
